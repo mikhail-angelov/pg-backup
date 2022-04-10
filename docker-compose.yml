@@ -19,7 +19,6 @@ services:
     environment:
       POSTGRES_PASSWORD: ${TEMP_POSTGRES_PASSWORD}
       POSTGRES_USER: ${TEMP_POSTGRES_USER}
-      POSTGRES_DB: ${TEMP_POSTGRES_DB}
     ports:
       - 5432:5432
     networks:
