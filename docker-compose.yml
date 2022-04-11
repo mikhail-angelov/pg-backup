@@ -1,0 +1,29 @@
+version: '3.7'
+
+services:
+  pg-backup:
+    depends_on:
+      - postgres
+    container_name: pg-backup
+    image: pg-backup
+    networks:
+      - webnet
+    env_file:
+      - .env
+    volumes:
+      - ./backups:/opt/app/backups
+  
+  postgres:
+    container_name: test-db
+    image: postgres:12.10-alpine3.15
+    environment:
+      POSTGRES_DB: ${PG_DB}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    ports:
+      - 5432:5432
+    networks:
+      - webnet
+
+networks:
+  webnet:
