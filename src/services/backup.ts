@@ -3,8 +3,11 @@ import fs from 'fs/promises'
 import { BACKUP_PATH, TEMP_PATH } from '..'
 import { config } from './config'
 
-const TEMP_DB_URL = `postgresql://${config.TEMP_POSTGRES_USER}:${config.TEMP_POSTGRES_PASSWORD}@${config.TEMP_POSTGRES_CONTAINER_NAME}:${config.TEMP_POSTGRES_PORT}/${config.TEMP_POSTGRES_DB}`
-const TEMP_MAINTENANCE_URL = `postgresql://${config.TEMP_POSTGRES_USER}:${config.TEMP_POSTGRES_PASSWORD}@${config.TEMP_POSTGRES_CONTAINER_NAME}:${config.TEMP_POSTGRES_PORT}`
+const PG_URL = `postgresql://${config.PG_USER}:${config.PG_PASSWORD}@${config.PG_HOST}:${config.PG_PORT}`
+const DB_URL = `${PG_URL}/${config.PG_DB}`
+
+const TEST_DB_NAME = 'test_backup'
+const TEST_DB_URL = `${PG_URL}/${TEST_DB_NAME}`
 
 const exec = (command: string) =>
   new Promise<string>((resolve: any, reject) =>
@@ -47,7 +50,8 @@ export const getFileStats = (path: string) => {
 export const makeBackup = async () => {
   const dumpFileName = `${Date.now()}-pg.dump`
   try {
-    await exec(`pg_dump -Fc --dbname=${config.DB_URL} > ${BACKUP_PATH}/${dumpFileName}`)
+    const stdout = await exec(`pg_dump -Fc --dbname=${DB_URL} > ${BACKUP_PATH}/${dumpFileName}`)
+    console.log('make backup', stdout)
   } catch (e) {
     console.log('pg_dump error', e)
   }
@@ -61,17 +65,17 @@ export const makeBackup = async () => {
 }
 
 export const restoreTempBackup = (fileName: string) => {
-  return exec(`pg_restore --dbname=${TEMP_DB_URL} --clean --if-exists --verbose '${TEMP_PATH}/${fileName}'`)
+  return exec(`pg_restore --dbname=${TEST_DB_URL} --clean --if-exists --verbose '${TEMP_PATH}/${fileName}'`)
 }
 
 export const querySQLTempBackup = () => {
-  return exec(`psql -c '\\x' -c '${config.TEST_SQL_QUERY}' --dbname=${TEMP_DB_URL}`)
+  return exec(`psql -c '\\x' -c '${config.TEST_SQL_QUERY}' --dbname=${TEST_DB_URL}`)
 }
 
 export const dropTempDb = () => {
-  return exec(`dropdb --maintenance-db=${TEMP_MAINTENANCE_URL} ${config.TEMP_POSTGRES_DB}`)
+  return exec(`dropdb --maintenance-db=${DB_URL} ${TEST_DB_NAME}`)
 }
 
 export const createTempDb = () => {
-  return exec(`createdb --maintenance-db=${TEMP_MAINTENANCE_URL} ${config.TEMP_POSTGRES_DB}`)
+  return exec(`createdb --maintenance-db=${DB_URL} ${TEST_DB_NAME}`)
 }

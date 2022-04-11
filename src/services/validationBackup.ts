@@ -14,26 +14,35 @@ export const validateLastCloudStorageBackup = async () => {
   if (!fileName) {
     return
   }
-
-  await createTempDb()
-
-  fs.rmSync(TEMP_PATH, { recursive: true, force: true })
-  fs.mkdirSync(TEMP_PATH)
-  const backupStream = await downloadFromCloudStorage(fileName)
-  const outputStream = createWriteStream(`${TEMP_PATH}/${fileName}`)
-  backupStream.pipe(outputStream)
-  await new Promise((resolve, reject) => {
-    outputStream.on('finish', resolve)
-    outputStream.on('error', reject)
-  })
-  await restoreTempBackup(fileName)
-  const queryResponse = await querySQLTempBackup()
-  if (!queryResponse.includes('Expanded display is on')) {
-    console.log('test sql query error', queryResponse)
-    throw 'sql test error'
+  try {
+    await createTempDb()
+  } catch (e: any) {
+    if (!e.message.includes('already exists')) {
+      throw e
+    }
   }
 
-  await dropTempDb()
-  
-  console.log('Successfully validated cloud storage: ', fileName)
+  try {
+    fs.rmSync(TEMP_PATH, { recursive: true, force: true })
+    fs.mkdirSync(TEMP_PATH)
+    const backupStream = await downloadFromCloudStorage(fileName)
+    const outputStream = createWriteStream(`${TEMP_PATH}/${fileName}`)
+    backupStream.pipe(outputStream)
+    await new Promise((resolve, reject) => {
+      outputStream.on('finish', resolve)
+      outputStream.on('error', reject)
+    })
+    await restoreTempBackup(fileName)
+
+    const queryResponse = await querySQLTempBackup()
+    const matches = /count \| (\d+)/.exec(queryResponse)
+    if (!(matches?.[1] && +matches[1] > 0)) {
+      throw `sql test error: ${queryResponse}`
+    }
+    console.log('Successfully validated cloud storage: ', fileName)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    await dropTempDb()
+  }
 }

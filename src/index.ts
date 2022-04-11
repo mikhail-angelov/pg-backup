@@ -33,7 +33,9 @@ const processS3Backup = async () => {
   }
   try {
     await uploadToCloudStorage(newestBackupFile)
-    await validateLastCloudStorageBackup()
+    if (config.TEST_SQL_QUERY) {
+      await validateLastCloudStorageBackup()
+    }
   } catch (e) {
     console.error('s3 backup process error', e)
   }
