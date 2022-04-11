@@ -50,7 +50,7 @@ export const getFileStats = (path: string) => {
 export const makeBackup = async () => {
   const dumpFileName = `${Date.now()}-pg.dump`
   try {
-    const stdout = await exec(`pg_dump -Fc --dbname=${DB_URL} > ${BACKUP_PATH}/${dumpFileName}`)
+    const stdout = await exec(`pg_dump -Fc --verbose --dbname=${DB_URL} > ${BACKUP_PATH}/${dumpFileName}`)
     console.log('make backup', stdout)
   } catch (e) {
     console.log('pg_dump error', e)
@@ -64,8 +64,9 @@ export const makeBackup = async () => {
   return dumpFileName
 }
 
-export const restoreTempBackup = (fileName: string) => {
-  return exec(`pg_restore --dbname=${TEST_DB_URL} --clean --if-exists --verbose '${TEMP_PATH}/${fileName}'`)
+export const restoreTempBackup = async (fileName: string) => {
+  const stdout = await exec(`pg_restore --dbname=${TEST_DB_URL} --clean --if-exists --verbose '${TEMP_PATH}/${fileName}'`)
+  console.log('restore backup', stdout)
 }
 
 export const querySQLTempBackup = () => {
